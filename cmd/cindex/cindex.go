@@ -12,11 +12,12 @@ import (
 	"path/filepath"
 	"runtime/pprof"
 	"sort"
+	"regexp"
 
 	"code.google.com/p/codesearch/index"
 )
 
-var usageMessage = `usage: cindex [-list] [-reset] [path...]
+var usageMessage = `usage: cindex [-list] [-reset] [-exclude path_regexp] [path...]
 
 Cindex prepares the trigram index for use by csearch.  The index is the
 file named by $CSEARCHINDEX, or else $HOME/.csearchindex.
@@ -58,12 +59,22 @@ var (
 	resetFlag   = flag.Bool("reset", false, "discard existing index")
 	verboseFlag = flag.Bool("verbose", false, "print extra information")
 	cpuProfile  = flag.String("cpuprofile", "", "write cpu profile to this file")
+        excludeRe   = flag.String(
+        "exclude", "", "regular expression of file paths not to index")
 )
 
 func main() {
 	flag.Usage = usage
 	flag.Parse()
 	args := flag.Args()
+	var exre *regexp.Regexp
+
+	exre, err := regexp.Compile(*excludeRe)
+        if *excludeRe != "" {
+		if err != nil {
+			log.Fatal(err)
+		}
+        }
 
 	if *listFlag {
 		ix := index.Open(index.File())
@@ -127,6 +138,10 @@ func main() {
 	for _, arg := range args {
 		log.Printf("index %s", arg)
 		filepath.Walk(arg, func(path string, info os.FileInfo, err error) error {
+			if *excludeRe != "" && exre.FindString(path) != "" {
+				// Path excluded by regular expression match
+				return filepath.SkipDir
+			}
 			if _, elem := filepath.Split(path); elem != "" {
 				// Skip various temporary or "hidden" files or directories.
 				if elem[0] == '.' || elem[0] == '#' || elem[0] == '~' || elem[len(elem)-1] == '~' {
