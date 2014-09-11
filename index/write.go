@@ -324,6 +324,16 @@ func (ix *IndexWriter) mergePost(out *bufWriter) {
 	}
 }
 
+// Return the size of data indexed in bytes
+func (w *IndexWriter) DataBytes() int64 {
+	return w.totalBytes
+}
+
+// Return the size of the index in bytes
+func (w *IndexWriter) IndexBytes() uint32 {
+	return w.main.offset()
+}
+
 // A postChunk represents a chunk of post entries flushed to disk or
 // still in memory.
 type postChunk struct {
