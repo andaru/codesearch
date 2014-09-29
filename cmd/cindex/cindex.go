@@ -14,7 +14,7 @@ import (
 	"sort"
 	"regexp"
 
-	"code.google.com/p/codesearch/index"
+	"github.com/andaru/codesearch/index"
 )
 
 var usageMessage = `usage: cindex [-list] [-reset] [-exclude path_regexp] [path...]

@@ -11,8 +11,8 @@ import (
 	"os"
 	"runtime/pprof"
 
-	"code.google.com/p/codesearch/index"
-	"code.google.com/p/codesearch/regexp"
+	"github.com/andaru/codesearch/index"
+	"github.com/andaru/codesearch/regexp"
 )
 
 var usageMessage = `usage: csearch [-c] [-f fileregexp] [-h] [-i] [-l] [-n] regexp
