@@ -93,10 +93,22 @@ type Index struct {
 
 const postEntrySize = 3 + 4 + 4
 
-func Open(file string) *Index {
+type corruptIndexError string
+
+func (e corruptIndexError) Error() string {
+	return "corrupt index: remove " + string(e)
+}
+
+func NewCorruptIndexError(filename string) corruptIndexError {
+	return corruptIndexError(filename)
+}
+
+func Open(file string) (*Index, error) {
+	var err error
 	mm := mmap(file)
 	if len(mm.d) < 4*4+len(trailerMagic) || string(mm.d[len(mm.d)-len(trailerMagic):]) != trailerMagic {
-		corrupt()
+		err = NewCorruptIndexError(file)
+		return nil, err
 	}
 	n := uint32(len(mm.d) - len(trailerMagic) - 5*4)
 	ix := &Index{data: mm}
@@ -107,7 +119,7 @@ func Open(file string) *Index {
 	ix.postIndex = ix.uint32(n + 16)
 	ix.numName = int((ix.postIndex-ix.nameIndex)/4) - 1
 	ix.numPost = int((n - ix.postIndex) / postEntrySize)
-	return ix
+	return ix, err
 }
 
 // slice returns the slice of index data starting at the given byte offset.
