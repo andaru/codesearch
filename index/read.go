@@ -103,6 +103,13 @@ func NewCorruptIndexError(filename string) corruptIndexError {
 	return corruptIndexError(filename)
 }
 
+func IsCorruptIndexError(err error) bool {
+	if _, ok := err.(*corruptIndexError); ok {
+		return true
+	}
+	return false
+}
+
 func Open(file string) (*Index, error) {
 	var err error
 	mm := mmap(file)

@@ -10,9 +10,9 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime/pprof"
 	"sort"
-	"regexp"
 
 	"github.com/andaru/codesearch/index"
 )
@@ -59,8 +59,8 @@ var (
 	resetFlag   = flag.Bool("reset", false, "discard existing index")
 	verboseFlag = flag.Bool("verbose", false, "print extra information")
 	cpuProfile  = flag.String("cpuprofile", "", "write cpu profile to this file")
-        excludeRe   = flag.String(
-        "exclude", "", "regular expression of file paths not to index")
+	excludeRe   = flag.String(
+		"exclude", "", "regular expression of file paths not to index")
 )
 
 func main() {
@@ -70,14 +70,17 @@ func main() {
 	var exre *regexp.Regexp
 
 	exre, err := regexp.Compile(*excludeRe)
-        if *excludeRe != "" {
+	if *excludeRe != "" {
 		if err != nil {
 			log.Fatal(err)
 		}
-        }
+	}
 
 	if *listFlag {
-		ix := index.Open(index.File())
+		ix, err := index.Open(index.File())
+		if err != nil {
+			log.Fatal(err)
+		}
 		for _, arg := range ix.Paths() {
 			fmt.Printf("%s\n", arg)
 		}
@@ -99,7 +102,10 @@ func main() {
 		return
 	}
 	if len(args) == 0 {
-		ix := index.Open(index.File())
+		ix, err := index.Open(index.File())
+		if err != nil {
+			log.Fatal(err)
+		}
 		for _, arg := range ix.Paths() {
 			args = append(args, arg)
 		}

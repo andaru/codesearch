@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path"
 	"strings"
 	"unsafe"
 
@@ -105,6 +106,19 @@ func (ix *IndexWriter) AddPaths(paths []string) {
 // to the index.  It logs errors using package log.
 func (ix *IndexWriter) AddFile(name string) {
 	f, err := os.Open(name)
+	if err != nil {
+		log.Print(err)
+		return
+	}
+	defer f.Close()
+	ix.Add(name, f)
+}
+
+// AddFileInRoot adds the file with the path appended to the root
+// (opened as per AddFile using os.Open). The filename in the index is
+// set to the provided name. It logs errors using package log.
+func (ix *IndexWriter) AddFileInRoot(root, name string) {
+	f, err := os.Open(path.Join(root, name))
 	if err != nil {
 		log.Print(err)
 		return

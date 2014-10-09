@@ -101,7 +101,11 @@ func Main() {
 		log.Printf("query: %s\n", q)
 	}
 
-	ix := index.Open(index.File())
+	ix, openerr := index.Open(index.File())
+	if openerr != nil {
+		log.Fatal(openerr)
+	}
+
 	ix.Verbose = *verboseFlag
 	var post []uint32
 	if *bruteFlag {
