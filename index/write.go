@@ -32,8 +32,8 @@ import (
 // allow incremental updating of an existing index when a directory changes.
 // But we have not implemented that.
 
-// An IndexWriter creates an on-disk index corresponding to a set of files.
-type IndexWriter struct {
+// An indexWriter creates an on-disk index corresponding to a set of files.
+type indexWriter struct {
 	LogSkip bool // log information about skipped files
 	Verbose bool // log status using package log
 
@@ -56,11 +56,23 @@ type IndexWriter struct {
 	main  *bufWriter // main index file
 }
 
+type IndexWriter interface {
+	AddPaths(paths []string)
+	AddFile(name string)
+	Add(name string, f io.Reader)
+	DataBytes() int64
+	IndexBytes() uint32
+	Flush()
+	// Static method to return a new instance
+	// of the type implementing the interface
+	Create(file string) IndexWriter
+}
+
 const npost = 64 << 20 / 8 // 64 MB worth of post entries
 
-// Create returns a new IndexWriter that will write the index to file.
-func Create(file string) *IndexWriter {
-	return &IndexWriter{
+// Create returns a new indexWriter that will write the index to file.
+func Create(file string) *indexWriter {
+	return &indexWriter{
 		trigram:   sparse.NewSet(1 << 24),
 		nameData:  bufCreate(""),
 		nameIndex: bufCreate(""),
@@ -69,6 +81,10 @@ func Create(file string) *IndexWriter {
 		post:      make([]postEntry, 0, npost),
 		inbuf:     make([]byte, 16384),
 	}
+}
+
+func (ix *indexWriter) Create(file string) IndexWriter {
+	return Create(file)
 }
 
 // A postEntry is an in-memory (trigram, file#) pair.
@@ -98,13 +114,13 @@ const (
 )
 
 // AddPaths adds the given paths to the index's list of paths.
-func (ix *IndexWriter) AddPaths(paths []string) {
+func (ix *indexWriter) AddPaths(paths []string) {
 	ix.paths = append(ix.paths, paths...)
 }
 
 // AddFile adds the file with the given name (opened using os.Open)
 // to the index.  It logs errors using package log.
-func (ix *IndexWriter) AddFile(name string) {
+func (ix *indexWriter) AddFile(name string) {
 	f, err := os.Open(name)
 	if err != nil {
 		log.Print(err)
@@ -117,7 +133,7 @@ func (ix *IndexWriter) AddFile(name string) {
 // AddFileInRoot adds the file with the path appended to the root
 // (opened as per AddFile using os.Open). The filename in the index is
 // set to the provided name. It logs errors using package log.
-func (ix *IndexWriter) AddFileInRoot(root, name string) {
+func (ix *indexWriter) AddFileInRoot(root, name string) {
 	f, err := os.Open(path.Join(root, name))
 	if err != nil {
 		log.Print(err)
@@ -129,7 +145,7 @@ func (ix *IndexWriter) AddFileInRoot(root, name string) {
 
 // Add adds the file f to the index under the given name.
 // It logs errors using package log.
-func (ix *IndexWriter) Add(name string, f io.Reader) {
+func (ix *indexWriter) Add(name string, f io.Reader) {
 	ix.trigram.Reset()
 	var (
 		c       = byte(0)
@@ -207,7 +223,7 @@ func (ix *IndexWriter) Add(name string, f io.Reader) {
 }
 
 // Flush flushes the index entry to the target file.
-func (ix *IndexWriter) Flush() {
+func (ix *indexWriter) Flush() {
 	ix.addName("")
 
 	var off [5]uint32
@@ -255,7 +271,7 @@ func copyFile(dst, src *bufWriter) {
 
 // addName adds the file with the given name to the index.
 // It returns the assigned file ID number.
-func (ix *IndexWriter) addName(name string) uint32 {
+func (ix *indexWriter) addName(name string) uint32 {
 	if strings.Contains(name, "\x00") {
 		log.Fatalf("%q: file has NUL byte in name", name)
 	}
@@ -270,7 +286,7 @@ func (ix *IndexWriter) addName(name string) uint32 {
 
 // flushPost writes ix.post to a new temporary file and
 // clears the slice.
-func (ix *IndexWriter) flushPost() {
+func (ix *indexWriter) flushPost() {
 	w, err := ioutil.TempFile("", "csearch-index")
 	if err != nil {
 		log.Fatal(err)
@@ -297,7 +313,7 @@ func (ix *IndexWriter) flushPost() {
 
 // mergePost reads the flushed index entries and merges them
 // into posting lists, writing the resulting lists to out.
-func (ix *IndexWriter) mergePost(out *bufWriter) {
+func (ix *indexWriter) mergePost(out *bufWriter) {
 	var h postHeap
 
 	if ix.Verbose {
@@ -343,12 +359,12 @@ func (ix *IndexWriter) mergePost(out *bufWriter) {
 }
 
 // Return the size of data indexed in bytes
-func (w *IndexWriter) DataBytes() int64 {
+func (w *indexWriter) DataBytes() int64 {
 	return w.totalBytes
 }
 
 // Return the size of the index in bytes
-func (w *IndexWriter) IndexBytes() uint32 {
+func (w *indexWriter) IndexBytes() uint32 {
 	return w.main.offset()
 }
 
