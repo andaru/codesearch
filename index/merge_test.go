@@ -54,9 +54,9 @@ func TestMerge(t *testing.T) {
 
 	Merge(out3, out1, out2)
 
-	ix1 := Open(out1)
-	ix2 := Open(out2)
-	ix3 := Open(out3)
+	ix1, _ := Open(out1)
+	ix2, _ := Open(out2)
+	ix3, _ := Open(out3)
 
 	nameof := func(ix *Index) string {
 		switch {
