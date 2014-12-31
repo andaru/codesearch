@@ -112,7 +112,10 @@ func IsCorruptIndexError(err error) bool {
 
 func Open(file string) (*Index, error) {
 	var err error
-	mm := mmap(file)
+	mm, err := mmap(file)
+	if err != nil {
+		return nil, err
+	}
 	if len(mm.d) < 4*4+len(trailerMagic) || string(mm.d[len(mm.d)-len(trailerMagic):]) != trailerMagic {
 		err = NewCorruptIndexError(file)
 		return nil, err
@@ -436,12 +439,12 @@ type mmapData struct {
 }
 
 // mmap maps the given file into memory.
-func mmap(file string) mmapData {
+func mmap(file string) (mmapData, error) {
 	f, err := os.Open(file)
 	if err != nil {
-		log.Fatal(err)
+		return mmapData{}, err
 	}
-	return mmapFile(f)
+	return mmapFile(f), nil
 }
 
 // File returns the name of the index file to use.
