@@ -63,9 +63,6 @@ type IndexWriter interface {
 	DataBytes() int64
 	IndexBytes() uint32
 	Flush()
-	// Static method to return a new instance
-	// of the type implementing the interface
-	Create(file string) IndexWriter
 }
 
 const npost = 64 << 20 / 8 // 64 MB worth of post entries
@@ -81,10 +78,6 @@ func Create(file string) *indexWriter {
 		post:      make([]postEntry, 0, npost),
 		inbuf:     make([]byte, 16384),
 	}
-}
-
-func (ix *indexWriter) Create(file string) IndexWriter {
-	return Create(file)
 }
 
 // A postEntry is an in-memory (trigram, file#) pair.
